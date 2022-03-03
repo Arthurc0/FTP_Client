@@ -1,10 +1,13 @@
 package vue;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -62,6 +65,51 @@ public class MainClient {
 		}
 	}
 	
+	// Exécution de la commande GET
+		private static void cmdGET(PrintStream ps, String commande, BufferedReader br) throws IOException {
+			// Si le nom du fichier contient un ou plusieurs '/'
+			if(commande.split(" ")[1].contains("/")) {
+				System.out.println("Le nom du fichier est invalide");
+			} else {
+				String chemin = "root/" + commande.split(" ")[1];
+				File fichier = new File(chemin);
+				
+			
+				ps.println(commande);
+				String dernierMsg = msgServeur(br);
+				
+				// Le fichier n'existe pas côté serveur
+				if(dernierMsg.startsWith("2")) {
+					System.out.println("Le fichier n'existe pas");
+				} else {
+					//Créer un nouveau fichier s'il n'existe pas
+					fichier.createNewFile();
+					
+					// Récupération du port désigné par le serveur
+					int port = Integer.parseInt(dernierMsg.split(" ")[1]);
+					Socket socketGET = new Socket("localhost", port);
+					
+					byte[] buffer = new byte[4*1024];
+					
+					BufferedOutputStream contenuFichier = new BufferedOutputStream(new FileOutputStream(fichier));
+					InputStream contenuSocket = socketGET.getInputStream();
+					
+					int nbOctetsLus = -1;
+					
+					// Envoi du contenu du fichier par paquet de 4 Ko
+					while((nbOctetsLus = contenuSocket.read(buffer)) > 0) {
+						contenuFichier.write(buffer, 0, nbOctetsLus);
+					}
+					
+					contenuFichier.close();
+					contenuSocket.close();
+					socketGET.close();
+					
+					System.out.println("Le fichier " + fichier.getName() + " a bien été téléchargé");
+				}
+			}
+		}
+	
 	// Affichage des messages du serveur et retour de la dernière ligne
 	private static String msgServeur(BufferedReader br) throws IOException {
 		String ligne;
@@ -99,12 +147,15 @@ public class MainClient {
 				}
 				
 				// Si le client écrit la commande STOR, le traitement sera différent
-				if(commande.split(" ")[0].equals("stor")) {
+				if(commande.split(" ")[0].equals("stor") || commande.split(" ")[0].equals("get")) {
 					if(connecte) {
-						if(commande.split(" ").length == 2) {
+						if(commande.split(" ").length == 2 && commande.split(" ")[0].equals("stor")) {
 							cmdSTOR(ps, commande, br);
+						} 
+						else if(commande.split(" ").length == 2 && commande.split(" ")[0].equals("get")){
+							cmdGET(ps, commande, br);
 						} else {
-							System.out.println("La commande STOR attend 2 arguments : STOR <fichier>");
+							System.out.println("La commande " + commande.split(" ")[0] + " attend 2 arguments : " + commande.split(" ")[0] + " <fichier>");
 						}
 					} else {
 						System.out.println("2 Vous n'êtes pas connecté !");
