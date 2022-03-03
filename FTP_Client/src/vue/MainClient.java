@@ -20,7 +20,7 @@ public class MainClient {
 	// Exécution de la commande STOR
 	private static void cmdSTOR(PrintStream ps, String commande, BufferedReader br) throws IOException {
 		// Si le nom du fichier contient un ou plusieurs '/'
-		if(commande.split(" ")[1].matches("[\\/]+")) {
+		if(commande.split(" ")[1].contains("/")) {
 			System.out.println("Le nom du fichier est invalide");
 		} else {
 			String chemin = "root/" + commande.split(" ")[1];
