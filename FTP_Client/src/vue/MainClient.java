@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.ConnectException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
 
 public class MainClient {
@@ -79,43 +81,49 @@ public class MainClient {
 	public static void main(String[] args) throws Exception {
 		System.out.println("Le Client FTP");
 		
-		Socket socket = new Socket("localhost", 2121);
-		BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		
-		msgServeur(br);
-		
-		PrintStream ps = new PrintStream(socket.getOutputStream());
-		Scanner scan = new Scanner(System.in);
-
-		String commande;
-		
-		// Envoi des commandes
-		while(true) {
-			if((commande = scan.nextLine()).equals("bye")) {
-				break;
-			}
+		try {
+			Socket socket = new Socket("localhost", 2121);
+			BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			
-			// Si le client écrit la commande STOR, le traitement sera différent
-			if(commande.split(" ")[0].equals("stor")) {
-				if(connecte) {
-					if(commande.split(" ").length == 2) {
-						cmdSTOR(ps, commande, br);
+			msgServeur(br);
+			
+			PrintStream ps = new PrintStream(socket.getOutputStream());
+			Scanner scan = new Scanner(System.in);
+
+			String commande;
+			
+			// Envoi des commandes
+			while(true) {
+				if((commande = scan.nextLine()).equals("bye")) {
+					break;
+				}
+				
+				// Si le client écrit la commande STOR, le traitement sera différent
+				if(commande.split(" ")[0].equals("stor")) {
+					if(connecte) {
+						if(commande.split(" ").length == 2) {
+							cmdSTOR(ps, commande, br);
+						} else {
+							System.out.println("La commande STOR attend 2 arguments : STOR <fichier>");
+						}
 					} else {
-						System.out.println("La commande STOR attend 2 arguments : STOR <fichier>");
+						System.out.println("2 Vous n'êtes pas connecté !");
 					}
 				} else {
-					System.out.println("2 Vous n'êtes pas connecté !");
+					ps.println(commande);
+					msgServeur(br);
 				}
-			} else {
-				ps.println(commande);
-				msgServeur(br);
+			}
+			ps.println("bye");
+			System.out.println("Arrêt de la communication avec le serveur FTP.");
+			
+			scan.close();
+			socket.close();
+		} catch(Exception e) {
+			if(e instanceof ConnectException || e instanceof SocketException) {
+				System.out.println("Le serveur FTP est déconnecté.");
 			}
 		}
-		ps.println("bye");
-		System.out.println("Arrêt de la communication avec le serveur FTP.");
-		
-		scan.close();
-		socket.close();
 	}
 
 }
