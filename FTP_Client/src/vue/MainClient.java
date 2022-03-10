@@ -7,6 +7,7 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 
 import java.awt.Toolkit;
 import javax.swing.JLabel;
@@ -22,6 +23,12 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 
 import javax.swing.JMenuItem;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.event.TreeSelectionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class MainClient extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -33,11 +40,11 @@ public class MainClient extends JFrame {
 	private JScrollPane scrollClient;
 	private JScrollPane scrollServeur;
 	private JScrollPane scrollLog;
-	private JTextArea txtLog;
+	public static JTextArea txtLog;
 	private JTree treeClient;
 	private JTree treeServeur;
 	private JPopupMenu menuClient;
-	private JMenuItem mntmClientEnvoyerFichier;
+	private static JMenuItem mntmClientEnvoyerFichier;
 	private JMenuItem mntmClientActualiser;
 	private JPopupMenu menuServeur;
 	private JMenuItem mntmServeurCreerDossier;
@@ -52,6 +59,19 @@ public class MainClient extends JFrame {
 				try {
 					MainClient frame = new MainClient();
 					frame.setVisible(true);
+					Traitement.execute(frame);
+					
+					frame.addWindowListener(new WindowAdapter() {
+						@Override
+						public void windowClosing(WindowEvent e) {
+							// Si la communication avec le serveur est toujours en cours
+							if(Traitement.serveurConnecte)
+								Traitement.envoyerCommande("bye", "");
+						}
+					});
+					
+					Traitement.envoyerCommande("user", "arthur");
+					Traitement.envoyerCommande("pass", "mdpArthur");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -76,7 +96,7 @@ public class MainClient extends JFrame {
 		contentPane.add(getLblLog());
 	}
 
-	private JLabel getLblClient() {
+	public JLabel getLblClient() {
 		if (lblClient == null) {
 			lblClient = new JLabel("Fichiers du client");
 			lblClient.setFont(new Font("Tahoma", Font.PLAIN, 15));
@@ -85,7 +105,7 @@ public class MainClient extends JFrame {
 		return lblClient;
 	}
 
-	private JLabel getLblServeur() {
+	public JLabel getLblServeur() {
 		if (lblServeur == null) {
 			lblServeur = new JLabel("Fichiers du serveur");
 			lblServeur.setFont(new Font("Tahoma", Font.PLAIN, 15));
@@ -94,7 +114,7 @@ public class MainClient extends JFrame {
 		return lblServeur;
 	}
 
-	private JSplitPane getSplitClientServeur() {
+	public JSplitPane getSplitClientServeur() {
 		if (splitClientServeur == null) {
 			splitClientServeur = new JSplitPane();
 			splitClientServeur.setResizeWeight(0.4);
@@ -105,7 +125,7 @@ public class MainClient extends JFrame {
 		return splitClientServeur;
 	}
 
-	private JScrollPane getScrollClient() {
+	public JScrollPane getScrollClient() {
 		if (scrollClient == null) {
 			scrollClient = new JScrollPane();
 			scrollClient.setViewportView(getTreeClient());
@@ -113,7 +133,7 @@ public class MainClient extends JFrame {
 		return scrollClient;
 	}
 
-	private JScrollPane getScrollServeur() {
+	public JScrollPane getScrollServeur() {
 		if (scrollServeur == null) {
 			scrollServeur = new JScrollPane();
 			scrollServeur.setViewportView(getTreeServeur());
@@ -130,25 +150,40 @@ public class MainClient extends JFrame {
 		return scrollLog;
 	}
 
-	private JTextArea getTxtLog() {
+	public JTextArea getTxtLog() {
 		if (txtLog == null) {
 			txtLog = new JTextArea();
+			txtLog.setFont(new Font("Monospaced", Font.PLAIN, 15));
 			txtLog.setEditable(false);
 		}
 		return txtLog;
 	}
 
-	private JTree getTreeClient() {
+	public JTree getTreeClient() {
 		if (treeClient == null) {
-			DefaultMutableTreeNode root = new DefaultMutableTreeNode("root");
-	        addChilds(root, "root");
-			treeClient = new JTree(new DefaultTreeModel(root));
+			DefaultMutableTreeNode rootClient = new DefaultMutableTreeNode("root");
+			ajouterNoeuds(rootClient, "root");
+			treeClient = new JTree(new DefaultTreeModel(rootClient));
+			treeClient.setRootVisible(false);
+			treeClient.addTreeSelectionListener(new TreeSelectionListener() {
+				public void valueChanged(TreeSelectionEvent arg0) {
+					if(treeClient.getLastSelectedPathComponent() != null) {
+						String chemin = "root/" + treeClient.getLastSelectedPathComponent().toString();
+						
+						File f = new File(chemin);
+						activerItemsClient(f.isFile() && f.exists());
+					} else {
+						activerItemsClient(false);
+					}
+					
+				}
+			});
 			addPopup(treeClient, getMenuClient());
 		}
 		return treeClient;
 	}
-
-	private JTree getTreeServeur() {
+	
+	public JTree getTreeServeur() {
 		if (treeServeur == null) {
 			treeServeur = new JTree();
 			addPopup(treeServeur, getMenuServeur());
@@ -165,23 +200,32 @@ public class MainClient extends JFrame {
 		}
 		return menuClient;
 	}
-
+	
 	private static void addPopup(Component component, final JPopupMenu popup) {
+		JTree tree = (JTree)component;
+		
 		component.addMouseListener(new MouseAdapter() {
-			public void mousePressed(MouseEvent e) {
-				if (e.isPopupTrigger()) {
-					showMenu(e);
-				}
-			}
-
+			
 			public void mouseReleased(MouseEvent e) {
+				// Clic sur les éléments de l'arbre avec le clic droit
+				int elementSelectionne = tree.getRowForLocation(e.getX(), e.getY());
+				TreePath cheminElement = tree.getPathForLocation(e.getX(), e.getY());
+				tree.setSelectionPath(cheminElement);
+				
+                if(elementSelectionne > -1) {
+                	tree.setSelectionRow(elementSelectionne);
+                } else {
+                	activerItemsClient(false);
+                }
+				
 				if (e.isPopupTrigger()) {
 					showMenu(e);
 				}
 			}
 
 			private void showMenu(MouseEvent e) {
-				popup.show(e.getComponent(), e.getX(), e.getY());
+				if(Traitement.serveurConnecte)
+					popup.show(e.getComponent(), e.getX(), e.getY());
 			}
 		});
 	}
@@ -189,6 +233,12 @@ public class MainClient extends JFrame {
 	private JMenuItem getMntmClientEnvoyerFichier() {
 		if (mntmClientEnvoyerFichier == null) {
 			mntmClientEnvoyerFichier = new JMenuItem("Envoyer le fichier");
+			mntmClientEnvoyerFichier.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					Traitement.envoyerCommande("stor", treeClient.getLastSelectedPathComponent().toString());
+				}
+			});
+			mntmClientEnvoyerFichier.setEnabled(false);
 		}
 		return mntmClientEnvoyerFichier;
 	}
@@ -196,10 +246,24 @@ public class MainClient extends JFrame {
 	private JMenuItem getMntmClientActualiser() {
 		if (mntmClientActualiser == null) {
 			mntmClientActualiser = new JMenuItem("Actualiser");
+			mntmClientActualiser.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					actualiserClient();
+				}
+			});
 		}
 		return mntmClientActualiser;
 	}
-
+	
+	public void actualiserClient() {
+		DefaultTreeModel model = (DefaultTreeModel)treeClient.getModel();
+		DefaultMutableTreeNode rootClient = (DefaultMutableTreeNode)model.getRoot();
+		rootClient.removeAllChildren();
+		
+		ajouterNoeuds(rootClient, "root");
+		model.reload(rootClient);
+	}
+	
 	private JPopupMenu getMenuServeur() {
 		if (menuServeur == null) {
 			menuServeur = new JPopupMenu();
@@ -239,7 +303,7 @@ public class MainClient extends JFrame {
 		return mntmServeurActualiser;
 	}
 	
-	private JLabel getLblLog() {
+	public JLabel getLblLog() {
 		if (lblLog == null) {
 			lblLog = new JLabel("Message du serveur");
 			lblLog.setFont(new Font("Tahoma", Font.PLAIN, 15));
@@ -248,19 +312,18 @@ public class MainClient extends JFrame {
 		return lblLog;
 	}
 	
+	private static void activerItemsClient(boolean val) {
+		mntmClientEnvoyerFichier.setEnabled(val);
+	}
 	
-	
-	
-	
-    private void addChilds(DefaultMutableTreeNode rootNode, String path) {
-        File[] files = new File(path).listFiles();
-        for(File file:files) {
-            if(file.isDirectory()) {
-                DefaultMutableTreeNode subDirectory = new DefaultMutableTreeNode(file.getName());
-                addChilds(subDirectory, file.getAbsolutePath());
-                rootNode.add(subDirectory);
-            } else {
-                rootNode.add(new DefaultMutableTreeNode(file.getName()));
+	private void ajouterNoeuds(DefaultMutableTreeNode noeudParent, String chemin) {
+        File[] fichiers = new File(chemin).listFiles();
+        
+        for(File fichier : fichiers) {
+        	DefaultMutableTreeNode noeud = new DefaultMutableTreeNode(fichier.getName());
+        	
+            if(fichier.isFile()) {
+            	noeudParent.add(noeud);
             }
         }
     }
