@@ -2,10 +2,15 @@ package vue;
 
 import java.awt.EventQueue;
 
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.DefaultListModel;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
@@ -21,16 +26,21 @@ import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JMenuItem;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.event.TreeSelectionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import javax.swing.JList;
+import javax.swing.ListSelectionModel;
+import javax.swing.UIManager;
+import java.awt.Color;
 
-public class MainClient extends JFrame {
+public class MainClient extends JFrame{
 	private static final long serialVersionUID = 1L;
 
 	private JPanel contentPane;
@@ -42,36 +52,22 @@ public class MainClient extends JFrame {
 	private JScrollPane scrollLog;
 	public static JTextArea txtLog;
 	private JTree treeClient;
-	private JTree treeServeur;
 	private JPopupMenu menuClient;
 	private static JMenuItem mntmClientEnvoyerFichier;
 	private JMenuItem mntmClientActualiser;
-	private JPopupMenu menuServeur;
-	private JMenuItem mntmServeurCreerDossier;
-	private JMenuItem mntmServeurSupprimerDossier;
-	private JMenuItem mntmServeurTelecharger;
-	private JMenuItem mntmServeurActualiser;
 	private JLabel lblLog;
+	private JLabel lblPwd;
+	
+	private JList<Object> treeServeur;
+	private static String msgServeur;
+
+	private DefaultListModel<Object> ListeServeur = new DefaultListModel<Object>();
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					MainClient frame = new MainClient();
-					frame.setVisible(true);
-					Traitement.execute(frame);
 					
-					frame.addWindowListener(new WindowAdapter() {
-						@Override
-						public void windowClosing(WindowEvent e) {
-							// Si la communication avec le serveur est toujours en cours
-							if(Traitement.serveurConnecte)
-								Traitement.envoyerCommande("bye", "");
-						}
-					});
-					
-					Traitement.envoyerCommande("user", "arthur");
-					Traitement.envoyerCommande("pass", "mdpArthur");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -81,7 +77,7 @@ public class MainClient extends JFrame {
 	
 	public MainClient() {
 		setResizable(false);
-		setIconImage(Toolkit.getDefaultToolkit().getImage(MainClient.class.getResource("/vue/icone.png")));
+		setIconImage(Toolkit.getDefaultToolkit().getImage(MainClient.class.getResource("/vue/images/icone.png")));
 		setTitle("Client FTP");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 980, 607);
@@ -91,9 +87,9 @@ public class MainClient extends JFrame {
 		contentPane.setLayout(null);
 		contentPane.add(getLblClient());
 		contentPane.add(getLblServeur());
-		contentPane.add(getSplitClientServeur());
-		contentPane.add(getScrollLog());
 		contentPane.add(getLblLog());
+		contentPane.add(getScrollLog());
+		contentPane.add(getSplitClientServeur());
 	}
 
 	public JLabel getLblClient() {
@@ -112,6 +108,15 @@ public class MainClient extends JFrame {
 			lblServeur.setBounds(836, 13, 128, 15);
 		}
 		return lblServeur;
+	}
+	
+	private JScrollPane getScrollLog() {
+		if (scrollLog == null) {
+			scrollLog = new JScrollPane();
+			scrollLog.setBounds(10, 437, 954, 130);
+			scrollLog.setViewportView(getTxtLog());
+		}
+		return scrollLog;
 	}
 
 	public JSplitPane getSplitClientServeur() {
@@ -137,17 +142,9 @@ public class MainClient extends JFrame {
 		if (scrollServeur == null) {
 			scrollServeur = new JScrollPane();
 			scrollServeur.setViewportView(getTreeServeur());
+			scrollServeur.setColumnHeaderView(getLblPwd());
 		}
 		return scrollServeur;
-	}
-
-	private JScrollPane getScrollLog() {
-		if (scrollLog == null) {
-			scrollLog = new JScrollPane();
-			scrollLog.setBounds(10, 437, 954, 130);
-			scrollLog.setViewportView(getTxtLog());
-		}
-		return scrollLog;
 	}
 
 	public JTextArea getTxtLog() {
@@ -181,14 +178,6 @@ public class MainClient extends JFrame {
 			addPopup(treeClient, getMenuClient());
 		}
 		return treeClient;
-	}
-	
-	public JTree getTreeServeur() {
-		if (treeServeur == null) {
-			treeServeur = new JTree();
-			addPopup(treeServeur, getMenuServeur());
-		}
-		return treeServeur;
 	}
 
 	private JPopupMenu getMenuClient() {
@@ -264,45 +253,6 @@ public class MainClient extends JFrame {
 		model.reload(rootClient);
 	}
 	
-	private JPopupMenu getMenuServeur() {
-		if (menuServeur == null) {
-			menuServeur = new JPopupMenu();
-			menuServeur.add(getMntmServeurCreerDossier());
-			menuServeur.add(getMntmServeurSupprimerDossier());
-			menuServeur.add(getMntmServeurTelecharger());
-			menuServeur.add(getMntmServeurActualiser());
-		}
-		return menuServeur;
-	}
-
-	private JMenuItem getMntmServeurCreerDossier() {
-		if (mntmServeurCreerDossier == null) {
-			mntmServeurCreerDossier = new JMenuItem("Créer un dossier");
-		}
-		return mntmServeurCreerDossier;
-	}
-
-	private JMenuItem getMntmServeurSupprimerDossier() {
-		if (mntmServeurSupprimerDossier == null) {
-			mntmServeurSupprimerDossier = new JMenuItem("Supprimer le dossier");
-		}
-		return mntmServeurSupprimerDossier;
-	}
-
-	private JMenuItem getMntmServeurTelecharger() {
-		if (mntmServeurTelecharger == null) {
-			mntmServeurTelecharger = new JMenuItem("Télécharger le fichier");
-		}
-		return mntmServeurTelecharger;
-	}
-
-	private JMenuItem getMntmServeurActualiser() {
-		if (mntmServeurActualiser == null) {
-			mntmServeurActualiser = new JMenuItem("Actualiser");
-		}
-		return mntmServeurActualiser;
-	}
-	
 	public JLabel getLblLog() {
 		if (lblLog == null) {
 			lblLog = new JLabel("Message du serveur");
@@ -327,4 +277,128 @@ public class MainClient extends JFrame {
             }
         }
     }
+
+
+	//Construire les données du serveur
+	private static class donneeServeur{
+		private String type;
+		private String name;
+		private Icon icon;
+		
+		donneeServeur(String type, String name){
+			this.type = type;
+			this.name = name;
+		}
+
+		public Icon getIcon() {
+			return icon;
+		}
+
+		public void setIcon(Icon icon) {
+			this.icon = icon;
+		}
+
+		public String getType() {
+			return type;
+		}
+
+		public void setType(String type) {
+			this.type = type;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+		
+		@Override
+		public String toString() {
+			return this.name;
+		}
+		
+	}
+	
+	public JList<Object> getTreeServeur() {
+		if (treeServeur == null) {
+			treeServeur = new JList<Object>(ListeServeur);
+			treeServeur.setFont(new Font("Tahoma", Font.PLAIN, 10));
+			treeServeur.setForeground(Color.BLACK);
+			treeServeur.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			
+			treeServeur.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					//S'assurer d'un double click
+					if (e.getClickCount() == 2 && !e.isConsumed()) {
+					     e.consume();
+						if(!treeServeur.isSelectionEmpty()) {
+							donneeServeur donnee = (donneeServeur) treeServeur.getSelectedValue();
+							if(donnee.getType().equals("d")) {
+								Traitement.envoyerCommande("cd", donnee.toString());
+								actualiserPwd();
+								remplirListeServeur();
+							}
+
+							if(donnee.getType().equals("r")) {
+								Traitement.envoyerCommande("cd", "..");
+								actualiserPwd();
+								remplirListeServeur();
+							}
+							
+							
+						}
+					}
+				}
+			});
+
+			remplirListeServeur();
+
+		}
+		return treeServeur;
+	}
+	
+	private void remplirListeServeur() {
+
+		
+		
+		Traitement.envoyerCommande("ls", "");
+		String elements[] = msgServeur.split(" ");
+		ListeServeur.removeAllElements();
+		
+		if(getLblPwd().getText().split("/").length > 2)
+			ListeServeur.addElement(new donneeServeur("r", ".."));
+		
+		//Afficher contenu du dossier courant
+		for(int i=2; i<elements.length; i++) {
+			ListeServeur.addElement(new donneeServeur(elements[i].split("-")[0], elements[i].split("-")[1]));
+		}
+	}
+	
+	
+	public static String getMsgServeur() {
+		return msgServeur;
+	}
+
+	public static void setMsgServeur(String msgServeur) {
+		MainClient.msgServeur = msgServeur;
+	}
+	
+	private JLabel getLblPwd() {
+		if (lblPwd == null) {
+			Traitement.envoyerCommande("pwd", "");
+			lblPwd = new JLabel(msgServeur.split(" ")[1]);
+			lblPwd.setBackground(UIManager.getColor("InternalFrame.inactiveTitleGradient"));
+
+		}
+		return lblPwd;
+	}
+	
+	private void actualiserPwd() {
+
+		Traitement.envoyerCommande("pwd", "");
+		lblPwd.setText(msgServeur.split(" ")[1]);
+	}
 }

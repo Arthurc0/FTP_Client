@@ -15,50 +15,78 @@ import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketException;
 
+import javax.swing.JFrame;
 import javax.swing.JTextArea;
 
 public class Traitement {
 	
 	private static JTextArea txtLog;
+	private static String txtConnexion;
 	
-	private static boolean connecte = false;
 	public static boolean serveurConnecte = false;
+	public static boolean connecte = false;
 	
 	private static PrintStream ps;
 	private static BufferedReader br;
 	private static Socket socket;
 	
+	
 	// Initialise les variables aux composants de l'interface et crée la communication avec le serveur FTP (socket)
-	public static void execute(MainClient frame) {
-		txtLog = frame.getTxtLog();
+	public static void execute(JFrame frame, boolean connecte) {
+		Connexion frameConnexion = null;
+		MainClient frameMain = null;
 		
-		afficherMessage("Le Client FTP");
+		if(!connecte) {
+			frameConnexion = (Connexion)frame;
+			txtConnexion = frameConnexion.getMsgServeur();
+		}
+		else {
+			frameMain = (MainClient)frame;
+			txtLog = frameMain.getTxtLog();
+			
+			afficherMessage("Le Client FTP");
+		}
 		
 		try {
-			socket = new Socket("localhost", 2121);
-			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			if(!connecte) {
+				socket = new Socket("localhost", 2121);
+				br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				
+				msgServeurString();
+				
+				ps = new PrintStream(socket.getOutputStream());
+				serveurConnecte = true;
+			}
 			
-			msgServeur();
-			
-			ps = new PrintStream(socket.getOutputStream());
-			serveurConnecte = true;
 		} catch(Exception e) {
 			if(e instanceof ConnectException || e instanceof SocketException) {
-				afficherMessage("Le serveur FTP est déconnecté");
-				
+				Connexion.setMsgServeur("Le serveur FTP est déconnecté");
+
 				serveurConnecte = false;
 				
-				// Désactiver les composants qui ne doivent plus être utilisables
-				frame.getLblClient().setEnabled(false);
-				frame.getLblServeur().setEnabled(false);
-				frame.getSplitClientServeur().setEnabled(false);
-				frame.getScrollClient().setEnabled(false);
-				frame.getTreeClient().setEnabled(false);
-				frame.getScrollServeur().setEnabled(false);
-				frame.getTreeServeur().setEnabled(false);
+				if(!connecte) {
+					// Désactiver les composants qui ne doivent plus être utilisables
+					frameConnexion.getBtnConnect().setEnabled(false);
+					frameConnexion.getTextUser().setEnabled(false);
+					frameConnexion.getTextPass().setEnabled(false);
+					frameConnexion.getLblErrorMessage().setText("Le serveur n'est pas connecté");
+				}
+				else {
+					afficherMessage("Le serveur FTP est déconnecté");
+					
+					// Désactiver les composants qui ne doivent plus être utilisables
+					frameMain.getLblClient().setEnabled(false);
+					frameMain.getLblServeur().setEnabled(false);
+					frameMain.getSplitClientServeur().setEnabled(false);
+					frameMain.getScrollClient().setEnabled(false);
+					frameMain.getTreeClient().setEnabled(false);
+					frameMain.getScrollServeur().setEnabled(false);
+					frameMain.getTreeServeur().setEnabled(false);
+				}
 			}
 		}
 	}
+	
 	
 	// Exécute la commande STOR
 	private static void cmdSTOR(String commande, String chemin) {
@@ -152,13 +180,12 @@ public class Traitement {
 	}
 	
 	// Affiche les messages du serveur FTP et retourne la dernière ligne
-	private static String msgServeur() {
+	public static String msgServeur() {
 		String ligne;
 		
 		while(true) {
 			try {
 				ligne = br.readLine();
-				if(!connecte && ligne.equals("1 Commande pass OK")) connecte = true;
 				
 				afficherMessage(ligne);
 				if(ligne.startsWith("0") || ligne.startsWith("2"))
@@ -171,9 +198,43 @@ public class Traitement {
 		return ligne;
 	}
 	
+	// Affiche les messages du serveur FTP à l'interface de connexion et retourne la dernière ligne
+	public static String msgServeurString() {
+		String ligne;
+		
+		while(true) {
+			try {
+				ligne = br.readLine();
+				
+				if(ligne.startsWith("0") || ligne.startsWith("2")) {
+					if(!connecte)
+						Connexion.setMsgServeur(ligne);
+					else
+						MainClient.setMsgServeur(ligne);
+					break;
+				}
+					
+				
+			} catch (IOException e) {
+				Connexion.setMsgServeur("Erreur de réception de la réponse du serveur");
+			}
+		}
+		return ligne;
+	}
+	
 	// Envoie la commande demandée au serveur FTP
-	public static void envoyerCommande(String commande, String chemin) {
+	public static void envoyerCommande(String commande, String chemin){
+		/*
+		try {
+			if(socket.getInputStream().read() == -1) {
+				serveurConnecte = false;
+			}
+		} catch (IOException e1) {
+			serveurConnecte = false;
+		}
+		*/
 		if(serveurConnecte) {
+			
 			if(commande.equals("bye")) {
 				ps.println(commande);
 				
@@ -187,11 +248,17 @@ public class Traitement {
 					cmdSTOR(commande, chemin);
 				} else if(commande.equals("get")) {
 					//cmdGET(commande, chemin);
+				} else if(commande.equals("user") || commande.equals("pass") || commande.equals("pwd") || commande.equals("ls")) {
+					ps.println(commande + " " + chemin);
+					msgServeurString();
 				} else {
 					ps.println(commande + " " + chemin);
 					msgServeur();
 				}
 			}
+		}
+		else {
+			System.out.println("Serveur deconnecté");
 		}
 	}
 	
@@ -202,4 +269,5 @@ public class Traitement {
 		// Auto scroll
 		txtLog.setCaretPosition(txtLog.getDocument().getLength());
 	}
+	
 }
