@@ -39,6 +39,8 @@ import javax.swing.JList;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
 import java.awt.Color;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
 
 public class MainClient extends JFrame{
 	private static final long serialVersionUID = 1L;
@@ -62,6 +64,9 @@ public class MainClient extends JFrame{
 	private static String msgServeur;
 
 	private DefaultListModel<Object> ListeServeur = new DefaultListModel<Object>();
+	private JPopupMenu menuServeur;
+	private JMenuItem mntmServeurTelechargerFichier;
+	private JMenuItem mntmServeurActualiser;
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -175,7 +180,7 @@ public class MainClient extends JFrame{
 					
 				}
 			});
-			addPopup(treeClient, getMenuClient());
+			addPopupClient(treeClient, getMenuClient());
 		}
 		return treeClient;
 	}
@@ -190,7 +195,7 @@ public class MainClient extends JFrame{
 		return menuClient;
 	}
 	
-	private static void addPopup(Component component, final JPopupMenu popup) {
+	private static void addPopupClient(Component component, final JPopupMenu popup) {
 		JTree tree = (JTree)component;
 		
 		component.addMouseListener(new MouseAdapter() {
@@ -207,6 +212,30 @@ public class MainClient extends JFrame{
                 	activerItemsClient(false);
                 }
 				
+				if (e.isPopupTrigger()) {
+					showMenu(e);
+				}
+			}
+
+			private void showMenu(MouseEvent e) {
+				if(Traitement.serveurConnecte)
+					popup.show(e.getComponent(), e.getX(), e.getY());
+			}
+		});
+	}
+	
+	private static void addPopupServeur(Component component, final JPopupMenu popup) {
+		JList tree = (JList)component;
+		
+		component.addMouseListener(new MouseAdapter() {
+			
+			public void mouseReleased(MouseEvent e) {
+				
+				int elementSelectionne = tree.locationToIndex(e.getPoint());
+				
+				if(elementSelectionne != -1)
+					tree.setSelectedIndex(elementSelectionne);
+								
 				if (e.isPopupTrigger()) {
 					showMenu(e);
 				}
@@ -327,6 +356,9 @@ public class MainClient extends JFrame{
 			treeServeur.setFont(new Font("Tahoma", Font.PLAIN, 10));
 			treeServeur.setForeground(Color.BLACK);
 			treeServeur.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			addPopupServeur(treeServeur, getMenuServeur());
+			
+			remplirListeServeur();
 			
 			treeServeur.addMouseListener(new MouseAdapter() {
 				@Override
@@ -347,22 +379,29 @@ public class MainClient extends JFrame{
 								actualiserPwd();
 								remplirListeServeur();
 							}
-							
-							
 						}
 					}
 				}
 			});
-
-			remplirListeServeur();
+			
+			//Click droit
+			treeServeur.addListSelectionListener(new ListSelectionListener() {
+				public void valueChanged(ListSelectionEvent e) {
+					if(treeServeur.getSelectedValue() != null) {
+						donneeServeur donnee = (donneeServeur)treeServeur.getSelectedValue();
+						mntmServeurTelechargerFichier.setEnabled(donnee.getType() == "f");
+					}
+					else
+						mntmServeurTelechargerFichier.setEnabled(false);
+					
+				}
+			});
 
 		}
 		return treeServeur;
 	}
 	
 	private void remplirListeServeur() {
-
-		
 		
 		Traitement.envoyerCommande("ls", "");
 		String elements[] = msgServeur.split(" ");
@@ -376,7 +415,6 @@ public class MainClient extends JFrame{
 			ListeServeur.addElement(new donneeServeur(elements[i].split("-")[0], elements[i].split("-")[1]));
 		}
 	}
-	
 	
 	public static String getMsgServeur() {
 		return msgServeur;
@@ -400,5 +438,34 @@ public class MainClient extends JFrame{
 
 		Traitement.envoyerCommande("pwd", "");
 		lblPwd.setText(msgServeur.split(" ")[1]);
+	}
+	
+	private JPopupMenu getMenuServeur() {
+		if (menuServeur == null) {
+			menuServeur = new JPopupMenu();
+			menuServeur.add(getMntmServeurTelechargerFichier());
+			menuServeur.add(getMntmServeurActualiser());
+		}
+		return menuServeur;
+	}
+	
+	private JMenuItem getMntmServeurTelechargerFichier() {
+		if (mntmServeurTelechargerFichier == null) {
+			mntmServeurTelechargerFichier = new JMenuItem("Télécharger le fichier");
+		}
+		return mntmServeurTelechargerFichier;
+	}
+	
+	private JMenuItem getMntmServeurActualiser() {
+		if (mntmServeurActualiser == null) {
+			mntmServeurActualiser = new JMenuItem("Actualiser");
+			mntmServeurActualiser.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					actualiserPwd();
+					remplirListeServeur();
+				}
+			});
+		}
+		return mntmServeurActualiser;
 	}
 }
