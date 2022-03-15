@@ -8,37 +8,31 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.ConnectException;
 import java.net.Socket;
-import java.net.SocketException;
-
 import javax.swing.JFrame;
 import javax.swing.JTextArea;
 
 public class Traitement {
 	
 	private static JTextArea txtLog;
-	private static String txtConnexion;
-	
 	public static boolean serveurConnecte = false;
 	public static boolean connecte = false;
 	
-	private static PrintStream ps;
-	private static BufferedReader br;
-	private static Socket socket;
-	
+	public static PrintStream ps;
+	public static BufferedReader br;
+	public static Socket socket;
+	public static Connexion frameConnexion = null;
+	public static MainClient frameMain = null;
 	
 	// Initialise les variables aux composants de l'interface et crée la communication avec le serveur FTP (socket)
 	public static void execute(JFrame frame, boolean connecte) {
-		Connexion frameConnexion = null;
-		MainClient frameMain = null;
+		
 		
 		if(!connecte) {
 			frameConnexion = (Connexion)frame;
-			txtConnexion = frameConnexion.getMsgServeur();
+			frameConnexion.getMsgServeur();
 		}
 		else {
 			frameMain = (MainClient)frame;
@@ -47,43 +41,18 @@ public class Traitement {
 			afficherMessage("Le Client FTP");
 		}
 		
-		try {
-			if(!connecte) {
-				socket = new Socket("localhost", 2121);
-				br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				
-				msgServeurString();
-				
-				ps = new PrintStream(socket.getOutputStream());
-				serveurConnecte = true;
-			}
+		if(!connecte) {
+			Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+			    @Override
+			    public void uncaughtException(Thread th, Throwable ex) {
+			        System.out.println("Uncaught exception: " + ex);
+			        serveurConnecte = false;
+			    }
+			};
 			
-		} catch(Exception e) {
-			if(e instanceof ConnectException || e instanceof SocketException) {
-				Connexion.setMsgServeur("Le serveur FTP est déconnecté");
-
-				serveurConnecte = false;
-				
-				if(!connecte) {
-					// Désactiver les composants qui ne doivent plus être utilisables
-					frameConnexion.getBtnConnect().setEnabled(false);
-					frameConnexion.getTextUser().setEnabled(false);
-					frameConnexion.getTextPass().setEnabled(false);
-					frameConnexion.getLblErrorMessage().setText("Le serveur n'est pas connecté");
-				}
-				else {
-					afficherMessage("Le serveur FTP est déconnecté");
-					
-					// Désactiver les composants qui ne doivent plus être utilisables
-					frameMain.getLblClient().setEnabled(false);
-					frameMain.getLblServeur().setEnabled(false);
-					frameMain.getSplitClientServeur().setEnabled(false);
-					frameMain.getScrollClient().setEnabled(false);
-					frameMain.getTreeClient().setEnabled(false);
-					frameMain.getScrollServeur().setEnabled(false);
-					frameMain.getTreeServeur().setEnabled(false);
-				}
-			}
+			Thread clientTh = new Thread(new ClientThread());
+			clientTh.setUncaughtExceptionHandler(h);
+			clientTh.start();
 		}
 	}
 	
@@ -263,7 +232,7 @@ public class Traitement {
 	}
 	
 	// Affiche le message demandé dans la zone d'affichage du texte
-	private static void afficherMessage(String message) {
+	public static void afficherMessage(String message) {
 		txtLog.append(message + "\n");
 		
 		// Auto scroll

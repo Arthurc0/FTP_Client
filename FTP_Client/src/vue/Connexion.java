@@ -1,6 +1,5 @@
 package vue;
 
-import java.awt.BorderLayout;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -21,7 +20,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class Connexion extends JFrame {
-
+	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private JButton btnConnect;
 	private JTextField textUser;
@@ -32,11 +31,7 @@ public class Connexion extends JFrame {
 	private JPasswordField textPass;
 	private JLabel lblNewLabel;
 	private JLabel lblNewLabel_1;
-
-
-	/**
-	 * Launch the application.
-	 */
+	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -58,11 +53,9 @@ public class Connexion extends JFrame {
 			}
 		});
 	}
-
-	/**
-	 * Create the frame.
-	 */
+	
 	public Connexion() {
+		setTitle("Connexion - Client FTP");
 		setResizable(false);
 		setIconImage(Toolkit.getDefaultToolkit().getImage(Connexion.class.getResource("/vue/images/icone.png")));
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -129,7 +122,7 @@ public class Connexion extends JFrame {
 						}
 				}
 			});
-			btnConnect.setBounds(150, 150, 200, 20);
+			btnConnect.setBounds(147, 164, 200, 20);
 		}
 		return btnConnect;
 	}
@@ -146,7 +139,7 @@ public class Connexion extends JFrame {
 				}
 				
 			});
-			textUser.setBounds(150, 60, 200, 20);
+			textUser.setBounds(147, 74, 200, 20);
 			textUser.setColumns(10);
 		}
 		return textUser;
@@ -180,21 +173,21 @@ public class Connexion extends JFrame {
 					}
 				}
 			});
-			textPass.setBounds(150, 106, 200, 19);
+			textPass.setBounds(147, 120, 200, 19);
 		}
 		return textPass;
 	}
 	private JLabel getLblNewLabel() {
 		if (lblNewLabel == null) {
 			lblNewLabel = new JLabel("Login");
-			lblNewLabel.setBounds(150, 43, 45, 13);
+			lblNewLabel.setBounds(147, 57, 45, 13);
 		}
 		return lblNewLabel;
 	}
 	private JLabel getLblNewLabel_1() {
 		if (lblNewLabel_1 == null) {
 			lblNewLabel_1 = new JLabel("Mot de passe");
-			lblNewLabel_1.setBounds(150, 90, 105, 13);
+			lblNewLabel_1.setBounds(147, 104, 105, 13);
 		}
 		return lblNewLabel_1;
 	}
