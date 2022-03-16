@@ -20,40 +20,35 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class Connexion extends JFrame {
-	private static final long serialVersionUID = 1L;
+	public static char msgServeur;
+	
 	private JPanel contentPane;
-	private JButton btnConnect;
-	private JTextField textUser;
-	private JLabel lblErrorMessage;
-	
-	private static String msgServeur;
-	private static Connexion frame;
-	private JPasswordField textPass;
 	private JLabel lblNewLabel;
-	private JLabel lblNewLabel_1;
-	
+
+	private static final long serialVersionUID = 1L;
+	private static JLabel lblErrorMessage;
+
+	private static JButton btnConnect;
+	private static JTextField textUser;
+	private static JPasswordField textPass;
+
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				try {
-					frame = new Connexion();
-					frame.setVisible(true);
-					Traitement.execute(frame, false);
-					frame.addWindowListener(new WindowAdapter() {
-						@Override
-						public void windowClosing(WindowEvent e) {
-							// Si la communication avec le serveur est toujours en cours
-							if(Traitement.serveurConnecte)
-								Traitement.envoyerCommande("bye", "");
-						}
-					});
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				JFrame frame = new Connexion();
+				frame.setVisible(true);
+				Traitement.execute();
+				frame.addWindowListener(new WindowAdapter() {
+					@Override
+					public void windowClosing(WindowEvent e) {
+						if (Traitement.serveurConnecte)
+							Traitement.envoyerCommande("bye", "");
+					}
+				});
 			}
 		});
 	}
-	
+
 	public Connexion() {
 		setTitle("Connexion - Client FTP");
 		setResizable(false);
@@ -69,81 +64,51 @@ public class Connexion extends JFrame {
 		contentPane.add(getLblErrorMessage());
 		contentPane.add(getTextPass());
 		contentPane.add(getLblNewLabel());
-		contentPane.add(getLblNewLabel_1());
 	}
-	
-	
+
 	public JButton getBtnConnect() {
 		if (btnConnect == null) {
 			btnConnect = new JButton("Se connecter");
-			
+
 			btnConnect.addKeyListener(new KeyAdapter() {
 				@Override
 				public void keyPressed(KeyEvent e) {
-					if (e.getKeyCode()==KeyEvent.VK_ENTER){
-						btnConnect.doClick();
+					if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+						validerConnexion();
 					}
 				}
 			});
+			
 			btnConnect.addActionListener(new ActionListener() {
-				
+
 				public void actionPerformed(ActionEvent e) {
-						Traitement.envoyerCommande("user", getTextUser().getText());
-						
-						if(msgServeur.startsWith("0")){
-							Traitement.envoyerCommande("pass", new String(getTextPass().getPassword()));
-						}
-
-						if(msgServeur.startsWith("0")){
-							Traitement.connecte = true;
-							
-							//getLblErrorMessage().setText(new String(getTextPass().getPassword()));
-							getLblErrorMessage().setText("Correct");
-
-							MainClient mainFrame = new MainClient();
-							mainFrame.setVisible(true);
-							Traitement.execute(mainFrame, true);
-							
-							mainFrame.addWindowListener(new WindowAdapter() {
-								@Override
-								public void windowClosing(WindowEvent e) {
-									// Si la communication avec le serveur est toujours en cours
-									if(Traitement.serveurConnecte)
-										Traitement.envoyerCommande("bye", "");
-								}
-							});
-							
-							frame.dispose();
-							
-						} else if(msgServeur.startsWith("2")){
-							getLblErrorMessage().setText("Login ou mot de passe incorrect");
-						} else {
-							getLblErrorMessage().setText("Erreur de communication avec le serveur");
-						}
+					validerConnexion();
 				}
 			});
 			btnConnect.setBounds(147, 164, 200, 20);
 		}
 		return btnConnect;
 	}
+
 	public JTextField getTextUser() {
 		if (textUser == null) {
 			textUser = new JTextField();
 			textUser.addKeyListener(new KeyAdapter() {
-				
+
 				@Override
 				public void keyPressed(KeyEvent e) {
-					if (e.getKeyCode()==KeyEvent.VK_ENTER){
-						textUser.transferFocus();
+					if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+						validerConnexion();
 					}
 				}
-				
+
 			});
 			textUser.setBounds(147, 74, 200, 20);
 			textUser.setColumns(10);
 		}
 		return textUser;
 	}
+
 	public JLabel getLblErrorMessage() {
 		if (lblErrorMessage == null) {
 			lblErrorMessage = new JLabel("");
@@ -153,23 +118,16 @@ public class Connexion extends JFrame {
 		}
 		return lblErrorMessage;
 	}
-	
-	public String getMsgServeur() {
-		return msgServeur;
-	}
 
-	public static void setMsgServeur(String msgServeur) {
-		Connexion.msgServeur = msgServeur;
-	}
 	public JPasswordField getTextPass() {
 		if (textPass == null) {
 			textPass = new JPasswordField();
-			
+
 			textPass.addKeyListener(new KeyAdapter() {
 				@Override
 				public void keyPressed(KeyEvent e) {
-					if (e.getKeyCode()==KeyEvent.VK_ENTER){
-						btnConnect.doClick();
+					if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+						validerConnexion();
 					}
 				}
 			});
@@ -177,6 +135,7 @@ public class Connexion extends JFrame {
 		}
 		return textPass;
 	}
+
 	private JLabel getLblNewLabel() {
 		if (lblNewLabel == null) {
 			lblNewLabel = new JLabel("Login");
@@ -184,11 +143,55 @@ public class Connexion extends JFrame {
 		}
 		return lblNewLabel;
 	}
-	private JLabel getLblNewLabel_1() {
-		if (lblNewLabel_1 == null) {
-			lblNewLabel_1 = new JLabel("Mot de passe");
-			lblNewLabel_1.setBounds(147, 104, 105, 13);
+
+	// Affiche le message demandé
+	public static void afficherMessage(String message) {
+		lblErrorMessage.setText(message);
+	}
+
+	public static void desactiverForm() {
+		textUser.setEnabled(false);
+		textPass.setEnabled(false);
+		btnConnect.setEnabled(false);
+	}
+	
+	private void validerConnexion() {
+		String user = textUser.getText();
+		String pass = new String(textPass.getPassword());
+
+		// Si les deux champs sont remplis
+		if(!user.isBlank() && !pass.isEmpty()) {
+			Traitement.envoyerCommande("user", user);
+			
+			if(msgServeur == '0') {
+				Traitement.envoyerCommande("pass", pass);
+				
+				if(msgServeur == '0') {
+					Traitement.connecte = true;
+					
+					MainClient mainFrame = new MainClient();
+					mainFrame.setVisible(true);
+					mainFrame.addWindowListener(new WindowAdapter() {
+						@Override
+						public void windowClosing(WindowEvent e) {
+							if(Traitement.serveurConnecte)
+								Traitement.envoyerCommande("bye", "");
+						}
+					});
+					this.dispose();
+				} else {
+					if(Traitement.serveurConnecte)
+						afficherMessage("Le mot de passe est incorrect");
+				}
+			} else {
+				if(Traitement.serveurConnecte)
+					afficherMessage("Le login n'existe pas");
+			}
+		} else {
+			if(user.isBlank())
+				afficherMessage("Le login n'est pas renseigné");
+			else
+				afficherMessage("Le mot de passe n'est pas renseigné");
 		}
-		return lblNewLabel_1;
 	}
 }

@@ -3,7 +3,6 @@ package vue;
 import java.awt.EventQueue;
 
 import javax.swing.DefaultListModel;
-import javax.swing.Icon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -35,27 +34,29 @@ import java.awt.Color;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 
-public class MainClient extends JFrame{
+public class MainClient extends JFrame {
 	private static final long serialVersionUID = 1L;
 
+	private static JLabel lblClient;
+	private static JLabel lblServeur;
+	private static JScrollPane scrollClient;
+	private static JSplitPane splitClientServeur;
+	private static JScrollPane scrollLog;
+
+	private static JTree treeClient;
+	private static JScrollPane scrollServeur;
+	private static JList<Object> treeServeur;
+	
 	private JPanel contentPane;
-	private JLabel lblClient;
-	private JLabel lblServeur;
-	private JSplitPane splitClientServeur;
-	private JScrollPane scrollClient;
-	private JScrollPane scrollServeur;
-	private JScrollPane scrollLog;
 	public static JTextArea txtLog;
-	private JTree treeClient;
 	private JPopupMenu menuClient;
 	private static JMenuItem mntmClientEnvoyerFichier;
 	private JMenuItem mntmClientActualiser;
 	private JLabel lblLog;
 	private JLabel lblPwd;
 	
-	private JList<Object> treeServeur;
 	private static String msgServeur;
-
+	
 	private DefaultListModel<Object> ListeServeur = new DefaultListModel<Object>();
 	private JPopupMenu menuServeur;
 	private JMenuItem mntmServeurTelechargerFichier;
@@ -64,11 +65,7 @@ public class MainClient extends JFrame{
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				try {
-					
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				
 			}
 		});
 	}
@@ -150,6 +147,8 @@ public class MainClient extends JFrame{
 			txtLog = new JTextArea();
 			txtLog.setFont(new Font("Monospaced", Font.PLAIN, 15));
 			txtLog.setEditable(false);
+			
+			afficherMessage("Le Client FTP");
 		}
 		return txtLog;
 	}
@@ -218,7 +217,7 @@ public class MainClient extends JFrame{
 	}
 	
 	private static void addPopupServeur(Component component, final JPopupMenu popup) {
-		JList tree = (JList)component;
+		JList<?> tree = (JList<?>)component;
 		
 		component.addMouseListener(new MouseAdapter() {
 			
@@ -305,37 +304,16 @@ public class MainClient extends JFrame{
 	private static class donneeServeur{
 		private String type;
 		private String name;
-		private Icon icon;
 		
 		donneeServeur(String type, String name){
 			this.type = type;
 			this.name = name;
 		}
 
-		public Icon getIcon() {
-			return icon;
-		}
-
-		public void setIcon(Icon icon) {
-			this.icon = icon;
-		}
-
 		public String getType() {
 			return type;
 		}
 
-		public void setType(String type) {
-			this.type = type;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
-		
 		@Override
 		public String toString() {
 			return this.name;
@@ -395,7 +373,6 @@ public class MainClient extends JFrame{
 	}
 	
 	private void remplirListeServeur() {
-		
 		Traitement.envoyerCommande("ls", "");
 		String elements[] = msgServeur.split(" ");
 		ListeServeur.removeAllElements();
@@ -428,7 +405,6 @@ public class MainClient extends JFrame{
 	}
 	
 	private void actualiserPwd() {
-
 		Traitement.envoyerCommande("pwd", "");
 		lblPwd.setText(msgServeur.split(" ")[1]);
 	}
@@ -460,5 +436,23 @@ public class MainClient extends JFrame{
 			});
 		}
 		return mntmServeurActualiser;
+	}
+	
+	// Affiche le message demandé dans la zone d'affichage du texte
+	public static void afficherMessage(String message) {
+		txtLog.append(message + "\n");
+		
+		// Auto scroll
+		txtLog.setCaretPosition(txtLog.getDocument().getLength());
+	}
+	
+	public static void desactiverComposants() {
+		lblClient.setEnabled(false);
+		lblServeur.setEnabled(false);
+		splitClientServeur.setEnabled(false);
+		scrollClient.setEnabled(false);
+		treeClient.setEnabled(false);
+		scrollServeur.setEnabled(false);
+		treeServeur.setEnabled(false);
 	}
 }
