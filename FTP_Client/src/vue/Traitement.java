@@ -81,7 +81,7 @@ public class Traitement {
 				if(commande.equals("stor")) {
 					cmdSTOR(commande, chemin);
 				} else if(commande.equals("get")) {
-					//cmdGET(commande, chemin);
+					cmdGET(commande, chemin);
 				} else {
 					ps.println(commande + " " + chemin);
 					msgServeur();
@@ -135,50 +135,48 @@ public class Traitement {
 	}
 	
 	// Exécute la commande GET
-	private static void cmdGET(String commande) {
+	private static void cmdGET(String commande, String chemin) {
 		// Si le nom du fichier contient un ou plusieurs '/'
-		if(commande.split(" ")[1].contains("/")) {
-			MainClient.afficherMessage("Le nom du fichier est invalide");
+		
+		File fichier = new File(chemin);
+		
+		ps.println(commande + " " + chemin);
+		String dernierMsg = msgServeur();
+		
+		// Le fichier n'existe pas côté serveur
+		if(dernierMsg.startsWith("2")) {
+			MainClient.afficherMessage("Le fichier n'existe pas");
 		} else {
-			String chemin = "root/" + commande.split(" ")[1];
-			File fichier = new File(chemin);
-			
-			ps.println(commande);
-			String dernierMsg = msgServeur();
-			
-			// Le fichier n'existe pas côté serveur
-			if(dernierMsg.startsWith("2")) {
-				MainClient.afficherMessage("Le fichier n'existe pas");
-			} else {
-				try {
-					//Créer un nouveau fichier s'il n'existe pas
-					fichier.createNewFile();
-					
-					// Récupération du port désigné par le serveur
-					int port = Integer.parseInt(dernierMsg.split(" ")[1]);
-					Socket socketGET = new Socket("localhost", port);
-					
-					byte[] buffer = new byte[4*1024];
-					
-					BufferedOutputStream contenuFichier = new BufferedOutputStream(new FileOutputStream(fichier));
-					InputStream contenuSocket = socketGET.getInputStream();
-					
-					int nbOctetsLus = -1;
-					
-					// Envoi du contenu du fichier par paquet de 4 Ko
-					while((nbOctetsLus = contenuSocket.read(buffer)) > 0) {
-						contenuFichier.write(buffer, 0, nbOctetsLus);
-					}
-					
-					contenuFichier.close();
-					contenuSocket.close();
-					socketGET.close();
-					
-					MainClient.afficherMessage("Le fichier " + fichier.getName() + " a bien été téléchargé");
-				} catch(IOException e) {
-					MainClient.afficherMessage("Erreur de communication avec le serveur");
+			try {
+				//Créer un nouveau fichier s'il n'existe pas
+				fichier.createNewFile();
+				
+				// Récupération du port désigné par le serveur
+				int port = Integer.parseInt(dernierMsg.split(" ")[1]);
+				Socket socketGET = new Socket("localhost", port);
+				
+				byte[] buffer = new byte[4*1024];
+				
+				BufferedOutputStream contenuFichier = new BufferedOutputStream(new FileOutputStream(fichier));
+				InputStream contenuSocket = socketGET.getInputStream();
+				
+				int nbOctetsLus = -1;
+				
+				// Envoi du contenu du fichier par paquet de 4 Ko
+				while((nbOctetsLus = contenuSocket.read(buffer)) > 0) {
+					contenuFichier.write(buffer, 0, nbOctetsLus);
 				}
+				
+				contenuFichier.close();
+				contenuSocket.close();
+				socketGET.close();
+				
+				MainClient.afficherMessage("Le fichier " + fichier.getName() + " a bien été téléchargé");
+			} catch(IOException e) {
+				MainClient.afficherMessage("Erreur de communication avec le serveur");
+				serveurConnecte = false;
 			}
 		}
+	
 	}
 }

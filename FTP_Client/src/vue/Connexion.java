@@ -31,6 +31,7 @@ public class Connexion extends JFrame {
 	private static JButton btnConnect;
 	private static JTextField textUser;
 	private static JPasswordField textPass;
+	private JLabel lblNewLabel_1;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -64,6 +65,7 @@ public class Connexion extends JFrame {
 		contentPane.add(getLblErrorMessage());
 		contentPane.add(getTextPass());
 		contentPane.add(getLblNewLabel());
+		contentPane.add(getLblNewLabel_1());
 	}
 
 	public JButton getBtnConnect() {
@@ -193,5 +195,12 @@ public class Connexion extends JFrame {
 			else
 				afficherMessage("Le mot de passe n'est pas renseigné");
 		}
+	}
+	private JLabel getLblNewLabel_1() {
+		if (lblNewLabel_1 == null) {
+			lblNewLabel_1 = new JLabel("Mot de passe");
+			lblNewLabel_1.setBounds(147, 104, 124, 13);
+		}
+		return lblNewLabel_1;
 	}
 }

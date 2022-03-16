@@ -23,6 +23,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -61,6 +63,8 @@ public class MainClient extends JFrame {
 	private JPopupMenu menuServeur;
 	private JMenuItem mntmServeurTelechargerFichier;
 	private JMenuItem mntmServeurActualiser;
+	private JMenuItem mntmServeurCreerDossier;
+	private JMenuItem mntmServeurSupprimerDossier;
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -246,6 +250,7 @@ public class MainClient extends JFrame {
 			mntmClientEnvoyerFichier.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
 					Traitement.envoyerCommande("stor", treeClient.getLastSelectedPathComponent().toString());
+					actualiserServeur();
 				}
 			});
 			mntmClientEnvoyerFichier.setEnabled(false);
@@ -329,7 +334,7 @@ public class MainClient extends JFrame {
 			treeServeur.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			addPopupServeur(treeServeur, getMenuServeur());
 			
-			remplirListeServeur();
+			actualiserServeur();
 			
 			treeServeur.addMouseListener(new MouseAdapter() {
 				@Override
@@ -342,13 +347,13 @@ public class MainClient extends JFrame {
 							if(donnee.getType().equals("d")) {
 								Traitement.envoyerCommande("cd", donnee.toString());
 								actualiserPwd();
-								remplirListeServeur();
+								actualiserServeur();
 							}
 
 							if(donnee.getType().equals("r")) {
 								Traitement.envoyerCommande("cd", "..");
 								actualiserPwd();
-								remplirListeServeur();
+								actualiserServeur();
 							}
 						}
 					}
@@ -360,10 +365,24 @@ public class MainClient extends JFrame {
 				public void valueChanged(ListSelectionEvent e) {
 					if(treeServeur.getSelectedValue() != null) {
 						donneeServeur donnee = (donneeServeur)treeServeur.getSelectedValue();
-						mntmServeurTelechargerFichier.setEnabled(donnee.getType() == "f");
+						if(donnee.getType().equals("f")) {
+							mntmServeurTelechargerFichier.setEnabled(true);
+							mntmServeurSupprimerDossier.setEnabled(false);
+						}
+						else if(donnee.getType().equals("d")){
+							mntmServeurSupprimerDossier.setEnabled(true);
+							mntmServeurTelechargerFichier.setEnabled(false);
+						}
+						else {
+							mntmServeurSupprimerDossier.setEnabled(false);
+							mntmServeurTelechargerFichier.setEnabled(false);
+						}
+							
 					}
-					else
+					else {
 						mntmServeurTelechargerFichier.setEnabled(false);
+						mntmServeurSupprimerDossier.setEnabled(false);
+					}
 					
 				}
 			});
@@ -372,7 +391,8 @@ public class MainClient extends JFrame {
 		return treeServeur;
 	}
 	
-	private void remplirListeServeur() {
+private void actualiserServeur() {
+		
 		Traitement.envoyerCommande("ls", "");
 		String elements[] = msgServeur.split(" ");
 		ListeServeur.removeAllElements();
@@ -414,6 +434,8 @@ public class MainClient extends JFrame {
 			menuServeur = new JPopupMenu();
 			menuServeur.add(getMntmServeurTelechargerFichier());
 			menuServeur.add(getMntmServeurActualiser());
+			menuServeur.add(getMntmServeurCreerDossier());
+			menuServeur.add(getMntmServeurSupprimerDossier());
 		}
 		return menuServeur;
 	}
@@ -421,6 +443,12 @@ public class MainClient extends JFrame {
 	private JMenuItem getMntmServeurTelechargerFichier() {
 		if (mntmServeurTelechargerFichier == null) {
 			mntmServeurTelechargerFichier = new JMenuItem("Télécharger le fichier");
+			mntmServeurTelechargerFichier.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					Traitement.envoyerCommande("get", treeServeur.getSelectedValue().toString());
+					actualiserClient();
+				}
+			});
 		}
 		return mntmServeurTelechargerFichier;
 	}
@@ -431,11 +459,41 @@ public class MainClient extends JFrame {
 			mntmServeurActualiser.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
 					actualiserPwd();
-					remplirListeServeur();
+					actualiserServeur();
 				}
 			});
 		}
 		return mntmServeurActualiser;
+	}
+	
+	private JMenuItem getMntmServeurCreerDossier() {
+		if (mntmServeurCreerDossier == null) {
+			mntmServeurCreerDossier = new JMenuItem("Créer un dossier");
+			mntmServeurCreerDossier.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					String nouvDossier = JOptionPane.showInputDialog(null, "Nom du dossier : ", null);
+					if(nouvDossier != null)
+						Traitement.envoyerCommande("mkdir", nouvDossier);
+					else
+						Traitement.envoyerCommande("mkdir", "NouveauDossier");
+					actualiserServeur();
+				}
+			});
+		}
+		return mntmServeurCreerDossier;
+	}
+	
+	private JMenuItem getMntmServeurSupprimerDossier() {
+		if (mntmServeurSupprimerDossier == null) {
+			mntmServeurSupprimerDossier = new JMenuItem("Supprimer le dossier");
+			mntmServeurSupprimerDossier.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					Traitement.envoyerCommande("rmdir", treeServeur.getSelectedValue().toString());
+					actualiserServeur();
+				}
+			});
+		}
+		return mntmServeurSupprimerDossier;
 	}
 	
 	// Affiche le message demandé dans la zone d'affichage du texte
