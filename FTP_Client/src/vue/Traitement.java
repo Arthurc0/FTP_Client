@@ -136,9 +136,8 @@ public class Traitement {
 	
 	// Exécute la commande GET
 	private static void cmdGET(String commande, String chemin) {
-		// Si le nom du fichier contient un ou plusieurs '/'
-		
-		File fichier = new File(chemin);
+
+		File fichier = new File("root/" + chemin);
 		
 		ps.println(commande + " " + chemin);
 		String dernierMsg = msgServeur();

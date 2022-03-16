@@ -2,6 +2,7 @@ package vue;
 
 import java.awt.EventQueue;
 
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -22,6 +23,8 @@ import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
@@ -303,14 +306,14 @@ public class MainClient extends JFrame {
             }
         }
     }
-
-
+	
+	
 	//Construire les données du serveur
-	private static class donneeServeur{
+	private static class DonneeServeur{
 		private String type;
 		private String name;
 		
-		donneeServeur(String type, String name){
+		DonneeServeur(String type, String name){
 			this.type = type;
 			this.name = name;
 		}
@@ -326,10 +329,27 @@ public class MainClient extends JFrame {
 		
 	}
 	
+	private class MyListRenderer extends DefaultListCellRenderer{
+        public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus){
+ 
+            super.getListCellRendererComponent( list, value, index, isSelected, cellHasFocus );
+  
+            if(((DonneeServeur)value).getType().equals("d")){
+            	setFont(new Font("Tahoma", Font.BOLD, 11));
+            }
+            else {
+            	setFont(new Font("Tahoma", Font.PLAIN, 11));
+            }
+  
+            return(this);
+        }
+    }
+	
 	public JList<Object> getTreeServeur() {
 		if (treeServeur == null) {
 			treeServeur = new JList<Object>(ListeServeur);
-			treeServeur.setFont(new Font("Tahoma", Font.PLAIN, 10));
+			treeServeur.setCellRenderer(new MyListRenderer());
+			treeServeur.setFont(new Font("Tahoma", Font.PLAIN, 11));
 			treeServeur.setForeground(Color.BLACK);
 			treeServeur.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			addPopupServeur(treeServeur, getMenuServeur());
@@ -343,7 +363,7 @@ public class MainClient extends JFrame {
 					if (e.getClickCount() == 2 && !e.isConsumed()) {
 					     e.consume();
 						if(!treeServeur.isSelectionEmpty()) {
-							donneeServeur donnee = (donneeServeur) treeServeur.getSelectedValue();
+							DonneeServeur donnee = (DonneeServeur) treeServeur.getSelectedValue();
 							if(donnee.getType().equals("d")) {
 								Traitement.envoyerCommande("cd", donnee.toString());
 								actualiserPwd();
@@ -364,7 +384,7 @@ public class MainClient extends JFrame {
 			treeServeur.addListSelectionListener(new ListSelectionListener() {
 				public void valueChanged(ListSelectionEvent e) {
 					if(treeServeur.getSelectedValue() != null) {
-						donneeServeur donnee = (donneeServeur)treeServeur.getSelectedValue();
+						DonneeServeur donnee = (DonneeServeur)treeServeur.getSelectedValue();
 						if(donnee.getType().equals("f")) {
 							mntmServeurTelechargerFichier.setEnabled(true);
 							mntmServeurSupprimerDossier.setEnabled(false);
@@ -398,11 +418,11 @@ private void actualiserServeur() {
 		ListeServeur.removeAllElements();
 		
 		if(getLblPwd().getText().split("/").length > 2)
-			ListeServeur.addElement(new donneeServeur("r", ".."));
+			ListeServeur.addElement(new DonneeServeur("r", ".."));
 		
 		//Afficher contenu du dossier courant
 		for(int i=2; i<elements.length; i++) {
-			ListeServeur.addElement(new donneeServeur(elements[i].split("-")[0], elements[i].split("-")[1]));
+			ListeServeur.addElement(new DonneeServeur(elements[i].split("-")[0], elements[i].split("-")[1]));
 		}
 	}
 	
@@ -472,11 +492,10 @@ private void actualiserServeur() {
 			mntmServeurCreerDossier.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
 					String nouvDossier = JOptionPane.showInputDialog(null, "Nom du dossier : ", null);
-					if(nouvDossier != null)
+					if(nouvDossier != null) {
 						Traitement.envoyerCommande("mkdir", nouvDossier);
-					else
-						Traitement.envoyerCommande("mkdir", "NouveauDossier");
-					actualiserServeur();
+						actualiserServeur();
+					}
 				}
 			});
 		}
