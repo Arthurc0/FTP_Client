@@ -60,7 +60,7 @@ public class MainClient extends JFrame {
 	private JLabel lblLog;
 	private JLabel lblPwd;
 	
-	private static String msgServeur;
+	public static String msgServeur;
 	
 	private DefaultListModel<Object> ListeServeur = new DefaultListModel<Object>();
 	private JPopupMenu menuServeur;
@@ -424,14 +424,6 @@ private void actualiserServeur() {
 		for(int i=2; i<elements.length; i++) {
 			ListeServeur.addElement(new DonneeServeur(elements[i].split("-")[0], elements[i].split("-")[1]));
 		}
-	}
-	
-	public static String getMsgServeur() {
-		return msgServeur;
-	}
-
-	public static void setMsgServeur(String msgServeur) {
-		MainClient.msgServeur = msgServeur;
 	}
 	
 	private JLabel getLblPwd() {

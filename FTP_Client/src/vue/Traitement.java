@@ -49,12 +49,11 @@ public class Traitement {
 		try {
 			while(true) {
 				ligne = br.readLine();
-				
 				if(ligne.startsWith("0") || ligne.startsWith("2")) {
 					if(!connecte)
 						Connexion.msgServeur = ligne.charAt(0);
 					else
-						MainClient.setMsgServeur(ligne);
+						MainClient.msgServeur = ligne;
 					break;
 				}
 			}

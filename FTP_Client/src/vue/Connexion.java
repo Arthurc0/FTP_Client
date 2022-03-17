@@ -158,44 +158,46 @@ public class Connexion extends JFrame {
 	}
 	
 	private void validerConnexion() {
-		String user = textUser.getText();
-		String pass = new String(textPass.getPassword());
+        String user = textUser.getText();
+        String pass = new String(textPass.getPassword());
 
-		// Si les deux champs sont remplis
-		if(!user.isBlank() && !pass.isEmpty()) {
-			Traitement.envoyerCommande("user", user);
-			
-			if(msgServeur == '0') {
-				Traitement.envoyerCommande("pass", pass);
-				
-				if(msgServeur == '0') {
-					Traitement.connecte = true;
-					
-					MainClient mainFrame = new MainClient();
-					mainFrame.setVisible(true);
-					mainFrame.addWindowListener(new WindowAdapter() {
-						@Override
-						public void windowClosing(WindowEvent e) {
-							if(Traitement.serveurConnecte)
-								Traitement.envoyerCommande("bye", "");
-						}
-					});
-					this.dispose();
-				} else {
-					if(Traitement.serveurConnecte)
-						afficherMessage("Le mot de passe est incorrect");
-				}
-			} else {
-				if(Traitement.serveurConnecte)
-					afficherMessage("Le login n'existe pas");
-			}
-		} else {
-			if(user.isBlank())
-				afficherMessage("Le login n'est pas renseigné");
-			else
-				afficherMessage("Le mot de passe n'est pas renseigné");
-		}
-	}
+        // Si les deux champs sont remplis
+        if(!user.isBlank() && !pass.isEmpty()) {
+            Traitement.envoyerCommande("user", user);
+            
+            if(msgServeur == '0') {
+                Traitement.envoyerCommande("pass", pass);
+                
+                if(msgServeur == '0') {
+                    if(Traitement.serveurConnecte) {
+                    	Traitement.connecte = true;
+                        MainClient mainFrame = new MainClient();
+                        mainFrame.setVisible(true);
+                        mainFrame.addWindowListener(new WindowAdapter() {
+                            @Override
+                            public void windowClosing(WindowEvent e) {
+                                if(Traitement.serveurConnecte)
+                                    Traitement.envoyerCommande("bye", "");
+                            }
+                        });
+                        this.dispose();
+                    }
+                } else {
+                    if(Traitement.serveurConnecte)
+                        afficherMessage("Le mot de passe est incorrect");
+                }
+            } else {
+                if(Traitement.serveurConnecte)
+                    afficherMessage("Le login n'existe pas");
+            }
+        } else {
+            if(user.isBlank())
+                afficherMessage("Le login n'est pas renseigné");
+            else
+                afficherMessage("Le mot de passe n'est pas renseigné");
+        }
+    }
+	
 	private JLabel getLblNewLabel_1() {
 		if (lblNewLabel_1 == null) {
 			lblNewLabel_1 = new JLabel("Mot de passe");
